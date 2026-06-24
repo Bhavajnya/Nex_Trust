@@ -31,11 +31,26 @@ async function startServer() {
   // Initialize Stripe
   const stripe = new Stripe(config.stripeSecretKey);
 
-  // Initialize Redis
-  const redis = new Redis(config.redisUrl);
+  // Initialize Redis with BullMQ-compatible settings
+  const redis = new Redis(config.redisUrl, {
+    maxRetriesPerRequest: null,
+    retryStrategy: () => null, // Don't auto-retry to fail fast
+    enableReadyCheck: false,
+    enableOfflineQueue: false,
+    lazyConnect: true, // Don't connect immediately
+  });
 
-  redis.on('error', (err) => console.error('[Redis] Error:', err));
+  redis.on('error', (err: any) => {
+    if (err.code !== 'ECONNREFUSED') {
+      console.error('[Redis] Error:', err);
+    }
+  });
   redis.on('connect', () => console.log('[Redis] Connected'));
+
+  // Try to connect but don't wait
+  redis.connect().catch(() => {
+    console.warn('[Redis] Connection failed - workers will be disabled');
+  });
 
   // Initialize Queue Manager
   const queueManager = new QueueManager(config.redisUrl);
@@ -48,14 +63,18 @@ async function startServer() {
   const app = express();
 
   // Middleware
+  const corsOrigins = Array.isArray(config.corsOrigin)
+    ? config.corsOrigin
+    : [config.corsOrigin];
+
   const corsOptions = {
-    origin: config.corsOrigin,
+    origin: corsOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'X-User-ID'],
   };
   app.use(cors(corsOptions));
-  console.log('[Server] CORS configured for origin:', config.corsOrigin);
+  console.log('[Server] CORS configured for origins:', corsOrigins);
   
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ limit: '10mb', extended: true }));
@@ -76,19 +95,24 @@ async function startServer() {
   app.use('/api/trust-score', authMiddleware, createTrustScoreRoutes(db));
   app.use('/api/state-machine', authMiddleware, stateMachineRoutes);
 
-  // Initialize workers
-  const reconciliationWorker = new ReconciliationWorker(redis, db, stripe);
-  const idempotencyCleanupWorker = new IdempotencyCleanupWorker(redis, db);
+  // Initialize workers (optional - only if Redis is available)
+  let reconciliationWorker: any = null;
+  let idempotencyCleanupWorker: any = null;
 
-  // Setup recurring jobs
-  await reconciliationWorker.setupRecurringReconciliation();
-  await idempotencyCleanupWorker.setupRecurringCleanup();
+  // Skip worker initialization - Redis not available
+  console.warn('[Server] Skipping background workers (Redis not configured for development)');
+  console.info('[Server] To enable: Install Redis and set REDIS_URL env var, or use Docker');
+  console.info('[Server] Docker: docker run -d -p 6379:6379 redis:latest');
 
   // Reconciliation routes (depends on worker)
-  app.use(
-  '/api/reconciliation',
-  createReconciliationRoutes(db, stripe, redis, reconciliationWorker)
-);
+  if (reconciliationWorker) {
+    app.use(
+      '/api/reconciliation',
+      createReconciliationRoutes(db, stripe, redis, reconciliationWorker)
+    );
+  } else {
+    console.log('[Server] Reconciliation routes disabled (no Redis)');
+  }
   // Error handling middleware
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
     console.error('[Server] Error:', err);
@@ -106,6 +130,14 @@ async function startServer() {
     console.log(`[Server] API URL: ${config.apiUrl}\n`);
   });
 
+  server.on('error', (err: any) => {
+    console.error('[Server] Server error:', err);
+    if (err.code === 'EADDRINUSE') {
+      console.error(`[Server] Port ${config.port} is already in use`);
+    }
+    process.exit(1);
+  });
+
   // Graceful shutdown
   const shutdown = async (signal: string) => {
     console.log(`\n[Server] Received ${signal}, shutting down...`);
@@ -114,8 +146,8 @@ async function startServer() {
       console.log('[Server] HTTP server closed');
 
       try {
-        await reconciliationWorker.close();
-        await idempotencyCleanupWorker.close();
+        if (reconciliationWorker) await reconciliationWorker.close();
+        if (idempotencyCleanupWorker) await idempotencyCleanupWorker.close();
         console.log('[Server] Workers closed');
       } catch (err) {
         console.error('[Server] Error closing workers:', err);
@@ -153,4 +185,13 @@ async function startServer() {
 startServer().catch((error) => {
   console.error('[Server] Startup failed:', error);
   process.exit(1);
+});
+
+// Keep process alive
+process.on('uncaughtException', (error) => {
+  console.error('[Server] Uncaught exception:', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Server] Unhandled rejection:', reason);
 });

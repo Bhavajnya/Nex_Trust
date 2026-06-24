@@ -1,6 +1,7 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Bell, ChevronDown, Gavel, LayoutDashboard, PlusCircle, Settings, Shield, Wallet, Briefcase } from "lucide-react";
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 
 export function DashboardShell({
   role,
@@ -11,17 +12,23 @@ export function DashboardShell({
   greeting: string;
   children: ReactNode;
 }) {
-  const path = useRouterState({ select: (s) => s.location.pathname });
+  const [currentPath, setCurrentPath] = useState<string>("");
+
+  useEffect(() => {
+    // Only set path on client side to avoid hydration mismatch
+    setCurrentPath(window.location.pathname);
+  }, []);
+
   const base = role === "customer" ? "/dashboard/customer" : "/dashboard/worker";
   const nav = [
     { to: base, label: "Overview", icon: LayoutDashboard },
     role === "customer"
       ? { to: "/post-job", label: "Post a Job", icon: PlusCircle }
-      : { to: base, label: "Find Jobs", icon: Briefcase },
-    { to: base, label: "My Jobs", icon: Briefcase },
-    { to: base, label: "Escrow Wallet", icon: Wallet },
+      : { to: "/find-jobs", label: "Find Jobs", icon: Briefcase },
+    { to: "/my-jobs", label: "My Jobs", icon: Briefcase },
+    { to: "/escrow-wallet", label: "Escrow Wallet", icon: Wallet },
     { to: "/disputes", label: "Disputes", icon: Gavel },
-    { to: base, label: "Settings", icon: Settings },
+    { to: "/settings", label: "Settings", icon: Settings },
   ];
 
   return (
@@ -32,15 +39,16 @@ export function DashboardShell({
         </Link>
         <nav className="flex-1 p-4 space-y-1">
           {nav.map((n, i) => {
-            const active = i === 0 && path === n.to;
+            const active = currentPath === n.to || (n.to === base && currentPath === base);
             const Icon = n.icon;
             return (
               <Link
                 key={n.label + i}
                 to={n.to}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${
-                  active ? "bg-white/10 text-white" : "hover:bg-white/5"
-                }`}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition hover:bg-white/5"
+                activeProps={{
+                  className: "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition bg-white/10 text-white",
+                }}
               >
                 <Icon className="h-4 w-4" /> {n.label}
               </Link>

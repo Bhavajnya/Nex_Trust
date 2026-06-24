@@ -11,7 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PostJobRouteImport } from './routes/post-job'
+import { Route as MyJobsRouteImport } from './routes/my-jobs'
+import { Route as FindJobsRouteImport } from './routes/find-jobs'
+import { Route as EscrowWalletRouteImport } from './routes/escrow-wallet'
 import { Route as DisputesRouteImport } from './routes/disputes'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
@@ -29,9 +33,29 @@ const SignInRoute = SignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PostJobRoute = PostJobRouteImport.update({
   id: '/post-job',
   path: '/post-job',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MyJobsRoute = MyJobsRouteImport.update({
+  id: '/my-jobs',
+  path: '/my-jobs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FindJobsRoute = FindJobsRouteImport.update({
+  id: '/find-jobs',
+  path: '/find-jobs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EscrowWalletRoute = EscrowWalletRouteImport.update({
+  id: '/escrow-wallet',
+  path: '/escrow-wallet',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DisputesRoute = DisputesRouteImport.update({
@@ -69,7 +93,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/disputes': typeof DisputesRoute
+  '/escrow-wallet': typeof EscrowWalletRoute
+  '/find-jobs': typeof FindJobsRoute
+  '/my-jobs': typeof MyJobsRoute
   '/post-job': typeof PostJobRoute
+  '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/dashboard/customer': typeof DashboardCustomerRoute
@@ -80,7 +108,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/disputes': typeof DisputesRoute
+  '/escrow-wallet': typeof EscrowWalletRoute
+  '/find-jobs': typeof FindJobsRoute
+  '/my-jobs': typeof MyJobsRoute
   '/post-job': typeof PostJobRoute
+  '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/dashboard/customer': typeof DashboardCustomerRoute
@@ -92,7 +124,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/disputes': typeof DisputesRoute
+  '/escrow-wallet': typeof EscrowWalletRoute
+  '/find-jobs': typeof FindJobsRoute
+  '/my-jobs': typeof MyJobsRoute
   '/post-job': typeof PostJobRoute
+  '/settings': typeof SettingsRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/dashboard/customer': typeof DashboardCustomerRoute
@@ -105,7 +141,11 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/disputes'
+    | '/escrow-wallet'
+    | '/find-jobs'
+    | '/my-jobs'
     | '/post-job'
+    | '/settings'
     | '/sign-in'
     | '/sign-up'
     | '/dashboard/customer'
@@ -116,7 +156,11 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/disputes'
+    | '/escrow-wallet'
+    | '/find-jobs'
+    | '/my-jobs'
     | '/post-job'
+    | '/settings'
     | '/sign-in'
     | '/sign-up'
     | '/dashboard/customer'
@@ -127,7 +171,11 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/disputes'
+    | '/escrow-wallet'
+    | '/find-jobs'
+    | '/my-jobs'
     | '/post-job'
+    | '/settings'
     | '/sign-in'
     | '/sign-up'
     | '/dashboard/customer'
@@ -139,7 +187,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   DisputesRoute: typeof DisputesRoute
+  EscrowWalletRoute: typeof EscrowWalletRoute
+  FindJobsRoute: typeof FindJobsRoute
+  MyJobsRoute: typeof MyJobsRoute
   PostJobRoute: typeof PostJobRoute
+  SettingsRoute: typeof SettingsRoute
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
   DashboardCustomerRoute: typeof DashboardCustomerRoute
@@ -163,11 +215,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/post-job': {
       id: '/post-job'
       path: '/post-job'
       fullPath: '/post-job'
       preLoaderRoute: typeof PostJobRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/my-jobs': {
+      id: '/my-jobs'
+      path: '/my-jobs'
+      fullPath: '/my-jobs'
+      preLoaderRoute: typeof MyJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/find-jobs': {
+      id: '/find-jobs'
+      path: '/find-jobs'
+      fullPath: '/find-jobs'
+      preLoaderRoute: typeof FindJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/escrow-wallet': {
+      id: '/escrow-wallet'
+      path: '/escrow-wallet'
+      fullPath: '/escrow-wallet'
+      preLoaderRoute: typeof EscrowWalletRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/disputes': {
@@ -219,7 +299,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   DisputesRoute: DisputesRoute,
+  EscrowWalletRoute: EscrowWalletRoute,
+  FindJobsRoute: FindJobsRoute,
+  MyJobsRoute: MyJobsRoute,
   PostJobRoute: PostJobRoute,
+  SettingsRoute: SettingsRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
   DashboardCustomerRoute: DashboardCustomerRoute,

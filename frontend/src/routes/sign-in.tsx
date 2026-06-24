@@ -22,12 +22,33 @@ function SignIn() {
     setLoading(true);
     setError(null);
     try {
-      await login(email, password);
-      navigate({ to: "/dashboard/customer" });
+      console.log('[Sign In] Attempting login for:', email);
+      const result = await login(email, password);
+
+      if (!result.success) {
+        const errorMsg = result.error || "Sign in failed";
+        console.error('[Sign In] Login failed:', errorMsg);
+        setError(errorMsg);
+        setLoading(false);
+        return;
+      }
+
+      console.log('[Sign In] Login successful, profile:', result.profile);
+
+      // Login succeeded, wait for state to settle and profile to load
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Get the user's role from the profile
+      const { profile } = result;
+      const dashboard = profile?.role === 'worker' ? '/dashboard/worker' : '/dashboard/customer';
+
+      console.log('[Sign In] Navigating to dashboard:', dashboard, 'Role:', profile?.role);
+      navigate({ to: dashboard });
     } catch (err: any) {
-      console.error("[v0] Sign in error:", err);
-      setError(err.message || "Sign in failed");
-    } finally {
+      console.error("[Sign In] Sign in exception:", err);
+      const errorMsg = err.code ? `Firebase Error (${err.code}): ${err.message}` : (err.message || "Sign in failed");
+      console.error('[Sign In] Full error:', err);
+      setError(errorMsg);
       setLoading(false);
     }
   };

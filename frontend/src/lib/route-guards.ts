@@ -107,6 +107,7 @@ export function validateRouteAccess(
   }
 
   if (guard.requireAuth && !isAuthenticated(user)) {
+    console.log('[Route Guard] User not authenticated, redirecting to sign-in');
     return {
       allowed: false,
       redirectTo: guard.redirectTo || '/sign-in',
@@ -114,9 +115,15 @@ export function validateRouteAccess(
   }
 
   if (guard.requireRole && !hasRole(userRole, guard.requireRole)) {
+    console.warn('[Route Guard] User role mismatch:', { required: guard.requireRole, current: userRole });
+    // If no role yet (loading), don't redirect yet
+    if (!userRole) {
+      console.log('[Route Guard] Role not yet loaded, allowing access temporarily');
+      return { allowed: true };
+    }
     return {
       allowed: false,
-      redirectTo: '/dashboard/customer', // Default redirect for unauthorized
+      redirectTo: userRole === 'worker' ? '/dashboard/worker' : '/dashboard/customer',
     };
   }
 

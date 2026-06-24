@@ -21,23 +21,41 @@ export class QueueManager {
   async initialize(): Promise<void> {
     console.log('[QueueManager] Initializing queues...');
 
-    // Create queues
-    for (const queueName of Object.values(QueueName)) {
-      const config = QUEUE_CONFIG[queueName];
-
-      const queue = new Queue(queueName, {
-        connection: this.redis as any,
-        defaultJobOptions: {
-          attempts: config.attempts,
-          backoff: config.backoff,
-          removeOnComplete: config.removeOnComplete,
-          removeOnFail: config.removeOnFail,
-        },
+    try {
+      // Try to connect to Redis first
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Redis connection timeout')), 2000);
+        this.redis.once('ready', () => {
+          clearTimeout(timeout);
+          resolve(true);
+        });
+        this.redis.once('error', (err) => {
+          clearTimeout(timeout);
+          reject(err);
+        });
       });
 
-      this.queues.set(queueName, queue);
+      // Create queues
+      for (const queueName of Object.values(QueueName)) {
+        const config = QUEUE_CONFIG[queueName];
 
-      console.log(`[QueueManager] Initialized queue: ${queueName}`);
+        const queue = new Queue(queueName, {
+          connection: this.redis as any,
+          defaultJobOptions: {
+            attempts: config.attempts,
+            backoff: config.backoff,
+            removeOnComplete: config.removeOnComplete,
+            removeOnFail: config.removeOnFail,
+          },
+        });
+
+        this.queues.set(queueName, queue);
+
+        console.log(`[QueueManager] Initialized queue: ${queueName}`);
+      }
+    } catch (err: any) {
+      console.warn(`[QueueManager] Redis not available: ${err.message}`);
+      console.warn('[QueueManager] Queues will be disabled (development mode)');
     }
   }
 

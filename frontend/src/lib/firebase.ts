@@ -2,42 +2,64 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 
+// Validate that all required env vars are present
+const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+const authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
+const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
+const storageBucket = import.meta.env.VITE_FIREBASE_STORAGE_BUCKET;
+const messagingSenderId = import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID;
+const appId = import.meta.env.VITE_FIREBASE_APP_ID;
+
+if (!apiKey || !authDomain || !projectId) {
+  console.error('[Firebase] CRITICAL: Missing Firebase environment variables!');
+  console.error('Required:', { apiKey: !!apiKey, authDomain: !!authDomain, projectId: !!projectId });
+  throw new Error(
+    'Firebase configuration incomplete. Ensure VITE_FIREBASE_API_KEY, VITE_FIREBASE_AUTH_DOMAIN, and VITE_FIREBASE_PROJECT_ID are set in .env.local'
+  );
+}
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyDxF6b8K9L2M3N4O5P6Q7R8S9T0U1V2W3X',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'magic-handshake-dev.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'magic-handshake-dev',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'magic-handshake-dev.appspot.com',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '123456789012',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:123456789012:web:abcdef1234567890',
+  apiKey,
+  authDomain,
+  projectId,
+  storageBucket,
+  messagingSenderId,
+  appId,
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+console.log('[Firebase] Initializing with config:', {
+  projectId: firebaseConfig.projectId,
+  authDomain: firebaseConfig.authDomain,
+  apiKey: firebaseConfig.apiKey.substring(0, 20) + '...',
+});
 
-// Initialize Firebase Auth and get a reference to the service
+// Initialize Firebase
+let app;
 let auth;
 let db;
 
 try {
+  app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
 
-  // Development: Connect to emulator
+  console.log('[Firebase] Auth initialized for:', firebaseConfig.authDomain);
+  console.log('[Firebase] Firestore initialized for project:', firebaseConfig.projectId);
+
+  // Development: Connect to emulator if enabled
   if (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true') {
     try {
       connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
       connectFirestoreEmulator(db, 'localhost', 8080);
+      console.log('[Firebase] Connected to emulators (DEV MODE)');
     } catch (e) {
-      // Emulators already connected
+      console.log('[Firebase] Emulators already connected or not available');
     }
   }
 } catch (error) {
-  console.warn('[Firebase] Initialization failed - using mock services for development:', error instanceof Error ? error.message : error);
-  // In development without valid API keys, we'll create placeholder exports
-  // These will be replaced when real Firebase credentials are provided
-  auth = null as any;
-  db = null as any;
+  console.error('[Firebase] Critical initialization error:', error);
+  throw error;
 }
 
-export { auth, db };
+export { auth, db, app };
 export default app;

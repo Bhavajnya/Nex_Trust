@@ -18,19 +18,47 @@ function SignUp() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate form
+    if (!formData.name || !formData.email || !formData.password || !role) {
+      setError("Please fill in all fields and select a role");
+      return;
+    }
+
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+
     setLoading(true);
     setError(null);
+
     try {
-      await register(formData.email, formData.password, { 
-        name: formData.name, 
-        role: role || "customer", 
-        skill: role === "worker" ? formData.skill : undefined 
-      });
-      navigate({ to: role === "customer" ? "/dashboard/customer" : "/dashboard/worker" });
+      console.log('[SignUp] Starting registration for:', formData.email, 'Role:', role);
+      const result = await register(formData.email, formData.password, formData.name, role);
+
+      console.log('[SignUp] Registration result:', result);
+
+      if (!result.success) {
+        const errMsg = result.error || "Sign up failed";
+        console.error('[SignUp] Registration failed:', errMsg);
+        setError(errMsg);
+        setLoading(false);
+        return;
+      }
+
+      console.log('[SignUp] Registration successful! User:', result.user?.uid);
+
+      // Wait briefly for auth state to settle
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const dashboard = role === "customer" ? "/dashboard/customer" : "/dashboard/worker";
+      console.log('[SignUp] Navigating to:', dashboard);
+      navigate({ to: dashboard });
     } catch (err: any) {
-      console.error("[v0] Sign up error:", err);
-      setError(err.message || "Sign up failed");
-    } finally {
+      const errMsg = err.message || "Sign up failed";
+      console.error("[SignUp] Unexpected error:", err);
+      setError(errMsg);
       setLoading(false);
     }
   };

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowUpRight, Bot, Lock, PlusCircle, TrendingUp, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DashboardShell } from "@/components/dashboard-shell";
@@ -27,6 +27,7 @@ function CustomerDashboard() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const api = new MagicHandshakeAPI();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadJobs = async () => {
@@ -101,7 +102,7 @@ function CustomerDashboard() {
                     </td>
                     <td className="px-3 py-4">{j.ai === "Verified" ? <VerifiedBadge /> : <StatusBadge status={j.ai} />}</td>
                     <td className="px-5 py-4 text-right">
-                      <button className="text-sm font-semibold inline-flex items-center gap-1" style={{ color: "var(--indigo)" }}>View <ArrowUpRight className="h-3 w-3" /></button>
+                      <button className="text-sm font-semibold inline-flex items-center gap-1" style={{ color: "var(--indigo)" }} onClick={() => navigate({ to: `/job/${j.id}` })}>View <ArrowUpRight className="h-3 w-3" /></button>
                     </td>
                   </tr>
                 ))}
@@ -114,7 +115,7 @@ function CustomerDashboard() {
         <div className="bg-white rounded-2xl border border-slate-200 p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold text-lg" style={{ fontFamily: "var(--font-display)", color: "var(--navy)" }}>Escrow Wallet</h3>
-            <button className="btn-pill-primary text-xs">Add Funds</button>
+            <button className="btn-pill-primary text-xs" onClick={() => navigate({ to: '/escrow/deposit' })}>Add Funds</button>
           </div>
           <div className="rounded-xl p-4 text-white" style={{ background: "linear-gradient(135deg, var(--navy), var(--indigo))" }}>
             <div className="text-xs uppercase tracking-wider text-slate-200" style={{ fontFamily: "var(--font-mono)" }}>Available balance</div>
@@ -156,4 +157,3 @@ function CustomerDashboard() {
     </DashboardShell>
   );
 }
-

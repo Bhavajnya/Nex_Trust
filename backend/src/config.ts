@@ -25,7 +25,7 @@ export const config = {
 
   // API
   apiUrl: process.env.API_URL || 'http://localhost:3001',
-  corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  corsOrigin: process.env.CORS_ORIGIN || ['http://localhost:3000', 'http://localhost:8080'],
 
   // OpenAI (for AI verification) - Optional if using mock AI
   openaiApiKey: process.env.OPENAI_API_KEY || '',

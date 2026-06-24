@@ -16,6 +16,7 @@ import { setIdTokenProvider } from "../lib/api";
 import { useAuthContext } from "../context/AuthContext";
 import { validateRouteAccess, logAccessAttempt } from "../lib/route-guards";
 import { useLocation } from "@tanstack/react-router";
+import { checkFirebaseConfig } from "../lib/firebase-debug";
 
 function NotFoundComponent() {
   return (
@@ -138,6 +139,13 @@ function RootComponentInner({ queryClient }: { queryClient: QueryClient }) {
   const auth = useAuthContext();
   const router = useRouter();
   const location = useLocation();
+
+  useEffect(() => {
+    // Check Firebase configuration on app load
+    if (import.meta.env.DEV) {
+      checkFirebaseConfig();
+    }
+  }, []);
 
   useEffect(() => {
     // Set up the ID token provider for API client
