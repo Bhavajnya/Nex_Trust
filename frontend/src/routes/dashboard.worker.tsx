@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { Camera, CloudUpload, MapPin, TrendingUp, Zap, Loader2, AlertCircle, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Camera, CloudUpload, MapPin, TrendingUp, Zap, Loader2, AlertCircle, RefreshCw, CheckCircle2, Briefcase, Wallet, ArrowUpRight } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { HashChip, StatusBadge } from "@/components/ui-bits";
@@ -34,6 +34,7 @@ function WorkerDashboard() {
   const [lastFile, setLastFile] = useState<File | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const api = new MagicHandshakeAPI();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadJobs = async () => {
@@ -185,18 +186,15 @@ function WorkerDashboard() {
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 p-5">
-          <h3 className="font-bold text-lg mb-3" style={{ fontFamily: "var(--font-display)", color: "var(--navy)" }}>Reputation Breakdown</h3>
-          {[["Job Completion Rate", 98], ["Customer Rating", 98], ["Dispute Rate", 100], ["Verified Evidence Score", 96]].map(([k, v]) => (
-            <div key={k as string} className="mb-4">
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-slate-600">{k}</span>
-                <span className="font-semibold" style={{ color: "var(--navy)" }}>{v}%</span>
-              </div>
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full rounded-full" style={{ width: `${v}%`, background: "linear-gradient(90deg, var(--indigo), var(--cyan-glow))" }} />
-              </div>
-            </div>
-          ))}
+          <h3 className="font-bold text-lg mb-3" style={{ fontFamily: "var(--font-display)", color: "var(--navy)" }}>Quick Actions</h3>
+          <div className="space-y-3">
+            <button onClick={() => navigate({ to: '/find-jobs' })} className="btn-pill-primary w-full text-sm">
+              <Briefcase className="h-4 w-4" /> Browse Jobs
+            </button>
+            <button onClick={() => navigate({ to: '/escrow-wallet' })} className="btn-pill-ghost w-full text-sm border-slate-200 text-slate-600 hover:bg-slate-50">
+              <Wallet className="h-4 w-4" /> View Wallet
+            </button>
+          </div>
         </div>
       </div>
 
@@ -231,7 +229,13 @@ function WorkerDashboard() {
                     <td className="px-3 py-4 font-semibold" style={{ color: "var(--navy)" }}>${j.budget}</td>
                     <td className="px-3 py-4"><StatusBadge status={j.status} /></td>
                     <td className="px-5 py-4 text-right">
-                      <button className="text-sm font-semibold" style={{ color: "var(--indigo)" }}>Submit Evidence</button>
+                      <button 
+                        className="text-sm font-semibold inline-flex items-center gap-1 hover:underline transition-all" 
+                        style={{ color: "var(--indigo)" }} 
+                        onClick={() => navigate({ to: `/job/${j.id}` })}
+                      >
+                        {j.status === 'IN_PROGRESS' ? 'Submit Evidence' : 'View Details'} <ArrowUpRight className="h-3 w-3" />
+                      </button>
                     </td>
                   </tr>
                 ))}

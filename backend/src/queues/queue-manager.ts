@@ -10,8 +10,25 @@ export class QueueManager {
   private redis: Redis;
 
   constructor(redisUrl: string) {
-    this.redis = new Redis(redisUrl) as any;
-    this.redis.on('error', (err) => console.error('[Redis] Error:', err));
+    this.redis = new Redis(redisUrl, {
+      maxRetriesPerRequest: null,
+      retryStrategy: () => null, // Fail fast in development if Redis is missing
+      enableReadyCheck: false,
+      enableOfflineQueue: false,
+      lazyConnect: true,
+    }) as any;
+
+    this.redis.on('error', (err: any) => {
+      // Suppress connection refused noise in dev to keep logs clean
+      const isConnRefused = err.code === 'ECONNREFUSED' || 
+                           err.message?.includes('ECONNREFUSED') ||
+                           (err.name === 'AggregateError' && Array.isArray(err.errors) && 
+                            err.errors.some((e: any) => e.code === 'ECONNREFUSED'));
+
+      if (!isConnRefused) {
+        console.error('[Redis] Error:', err);
+      }
+    });
     this.redis.on('connect', () => console.log('[Redis] Connected'));
   }
 
@@ -25,14 +42,22 @@ export class QueueManager {
       // Try to connect to Redis first
       await new Promise((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error('Redis connection timeout')), 2000);
-        this.redis.once('ready', () => {
-          clearTimeout(timeout);
+
+        const cleanup = () => clearTimeout(timeout);
+        const onConnect = () => {
+          cleanup();
+          this.redis.removeListener('error', onError);
           resolve(true);
-        });
-        this.redis.once('error', (err) => {
-          clearTimeout(timeout);
+        };
+        const onError = (err: any) => {
+          cleanup();
+          this.redis.removeListener('connect', onConnect);
           reject(err);
-        });
+        };
+
+        this.redis.once('connect', onConnect);
+        this.redis.once('error', onError);
+        this.redis.connect().catch(reject);
       });
 
       // Create queues
@@ -57,6 +82,13 @@ export class QueueManager {
       console.warn(`[QueueManager] Redis not available: ${err.message}`);
       console.warn('[QueueManager] Queues will be disabled (development mode)');
     }
+  }
+
+  /**
+   * Check if Redis is connected and queues are initialized
+   */
+  isReady(): boolean {
+    return this.queues.size > 0;
   }
 
   /**

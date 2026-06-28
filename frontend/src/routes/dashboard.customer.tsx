@@ -102,7 +102,13 @@ function CustomerDashboard() {
                     </td>
                     <td className="px-3 py-4">{j.ai === "Verified" ? <VerifiedBadge /> : <StatusBadge status={j.ai} />}</td>
                     <td className="px-5 py-4 text-right">
-                      <button className="text-sm font-semibold inline-flex items-center gap-1" style={{ color: "var(--indigo)" }} onClick={() => navigate({ to: `/job/${j.id}` })}>View <ArrowUpRight className="h-3 w-3" /></button>
+                      <button 
+                        className="text-sm font-semibold inline-flex items-center gap-1 hover:underline transition-all" 
+                        style={{ color: "var(--indigo)" }} 
+                        onClick={() => navigate({ to: `/job/${j.id}` })}
+                      >
+                        View Details <ArrowUpRight className="h-3 w-3" />
+                      </button>
                     </td>
                   </tr>
                 ))}

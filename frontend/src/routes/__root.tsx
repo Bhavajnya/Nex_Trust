@@ -155,7 +155,9 @@ function RootComponentInner({ queryClient }: { queryClient: QueryClient }) {
   }, [auth]);
 
   useEffect(() => {
-    // Route guard: check if user has access to current route
+    // Route guard: wait for auth state to be established
+    if (auth.loading) return;
+
     const pathname = location.pathname;
     const validation = validateRouteAccess(pathname, auth.user, auth.profile?.role);
     
@@ -165,7 +167,7 @@ function RootComponentInner({ queryClient }: { queryClient: QueryClient }) {
       console.log(`[v0] Redirecting to ${validation.redirectTo} due to route guard`);
       router.navigate({ to: validation.redirectTo });
     }
-  }, [location.pathname, auth.user, auth.profile?.role, router]);
+  }, [location.pathname, auth.user, auth.profile?.role, auth.loading, router]);
 
   return (
     <QueryClientProvider client={queryClient}>

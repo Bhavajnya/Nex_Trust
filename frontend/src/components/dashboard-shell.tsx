@@ -1,7 +1,8 @@
-import { Link } from "@tanstack/react-router";
-import { Bell, ChevronDown, Gavel, LayoutDashboard, PlusCircle, Settings, Shield, Wallet, Briefcase } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Bell, ChevronDown, Gavel, LayoutDashboard, PlusCircle, Settings, Shield, Wallet, Briefcase, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { useAuthContext } from "@/context/AuthContext";
 
 export function DashboardShell({
   role,
@@ -13,6 +14,8 @@ export function DashboardShell({
   children: ReactNode;
 }) {
   const [currentPath, setCurrentPath] = useState<string>("");
+  const { logout, profile } = useAuthContext();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Only set path on client side to avoid hydration mismatch
@@ -31,6 +34,15 @@ export function DashboardShell({
     { to: "/settings", label: "Settings", icon: Settings },
   ];
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate({ to: "/sign-in" });
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
+  };
+
   return (
     <div className="min-h-screen flex w-full" style={{ background: "var(--background)" }}>
       <aside className="hidden lg:flex w-64 flex-col text-slate-200 shrink-0" style={{ background: "var(--navy)" }}>
@@ -39,7 +51,6 @@ export function DashboardShell({
         </Link>
         <nav className="flex-1 p-4 space-y-1">
           {nav.map((n, i) => {
-            const active = currentPath === n.to || (n.to === base && currentPath === base);
             const Icon = n.icon;
             return (
               <Link
@@ -70,16 +81,31 @@ export function DashboardShell({
             <div className="text-base sm:text-lg font-semibold truncate" style={{fontFamily:"var(--font-display)"}}>{greeting}</div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <button className="relative p-2 rounded-full hover:bg-slate-100">
+            <button className="relative p-2 rounded-full hover:bg-slate-100 transition-colors" title="Notifications">
               <Bell className="h-5 w-5 text-slate-600" />
               <span className="absolute top-1 right-1 h-2 w-2 rounded-full" style={{background:"var(--amber-brand)"}} />
             </button>
-            <button className="flex items-center gap-2 p-1 pr-3 rounded-full hover:bg-slate-100">
-              <span className="grid place-items-center h-8 w-8 rounded-full text-white font-semibold" style={{background:"var(--indigo)"}}>
-                {greeting.split(" ").pop()?.[0] ?? "U"}
-              </span>
-              <ChevronDown className="h-4 w-4 text-slate-500" />
-            </button>
+            
+            <div className="relative group">
+              <button className="flex items-center gap-2 p-1 pr-3 rounded-full hover:bg-slate-100 transition-colors">
+                <span className="grid place-items-center h-8 w-8 rounded-full text-white font-semibold" style={{background:"var(--indigo)"}}>
+                  {profile?.name?.[0] ?? profile?.email?.[0] ?? "U"}
+                </span>
+                <ChevronDown className="h-4 w-4 text-slate-500" />
+              </button>
+              
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 p-2">
+                <Link to="/settings" className="flex items-center gap-2 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-xl transition-colors">
+                  <Settings className="h-4 w-4" /> Settings
+                </Link>
+                <button 
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors mt-1"
+                >
+                  <LogOut className="h-4 w-4" /> Sign Out
+                </button>
+              </div>
+            </div>
           </div>
         </header>
         <main className="flex-1 p-6 lg:p-10">{children}</main>

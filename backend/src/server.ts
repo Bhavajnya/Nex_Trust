@@ -41,7 +41,13 @@ async function startServer() {
   });
 
   redis.on('error', (err: any) => {
-    if (err.code !== 'ECONNREFUSED') {
+    // Suppress connection refused errors in development to reduce log noise
+    const isConnRefused = err.code === 'ECONNREFUSED' || 
+                         err.message?.includes('ECONNREFUSED') ||
+                         (err.name === 'AggregateError' && Array.isArray(err.errors) && 
+                          err.errors.some((e: any) => e.code === 'ECONNREFUSED'));
+
+    if (!isConnRefused) {
       console.error('[Redis] Error:', err);
     }
   });
@@ -99,10 +105,19 @@ async function startServer() {
   let reconciliationWorker: any = null;
   let idempotencyCleanupWorker: any = null;
 
-  // Skip worker initialization - Redis not available
-  console.warn('[Server] Skipping background workers (Redis not configured for development)');
-  console.info('[Server] To enable: Install Redis and set REDIS_URL env var, or use Docker');
-  console.info('[Server] Docker: docker run -d -p 6379:6379 redis:latest');
+  if (queueManager.isReady()) {
+    try {
+      reconciliationWorker = new ReconciliationWorker(redis, db, stripe);
+      idempotencyCleanupWorker = new IdempotencyCleanupWorker(redis, db);
+      console.log('[Server] Background workers initialized');
+    } catch (err: any) {
+      console.warn('[Server] Failed to initialize workers:', err.message);
+    }
+  } else {
+    console.warn('[Server] Skipping background workers (Redis not configured for development)');
+    console.info('[Server] To enable: Install Redis and set REDIS_URL env var, or use Docker');
+    console.info('[Server] Docker: docker run -d -p 6379:6379 redis:latest');
+  }
 
   // Reconciliation routes (depends on worker)
   if (reconciliationWorker) {

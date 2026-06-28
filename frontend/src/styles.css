@@ -203,13 +203,32 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem 1.75rem;
   border-radius: 9999px;
   background: var(--indigo);
   color: white;
   font-weight: 600;
-  transition: all 0.25s ease;
-  box-shadow: 0 8px 24px -8px color-mix(in oklab, var(--indigo) 60%, transparent);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 20px -6px color-mix(in oklab, var(--indigo) 50%, transparent);
+  cursor: pointer;
+  border: none;
+}
+
+@utility btn-pill-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -8px color-mix(in oklab, var(--indigo) 60%, transparent);
+  background: var(--indigo-glow);
+}
+
+@utility btn-pill-primary:active {
+  transform: translateY(0);
+}
+
+@utility btn-pill-primary:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  transform: none;
+  box-shadow: none;
 }
 
 @utility btn-pill-ghost {
@@ -219,10 +238,34 @@
   gap: 0.5rem;
   padding: 0.7rem 1.45rem;
   border-radius: 9999px;
-  border: 1px solid color-mix(in oklab, var(--cyan-glow) 60%, transparent);
+  border: 1px solid color-mix(in oklab, var(--cyan-glow) 40%, transparent);
   color: var(--cyan-glow);
   font-weight: 600;
   transition: all 0.25s ease;
+  cursor: pointer;
+  background: transparent;
+}
+
+@utility btn-pill-ghost:hover {
+  background: color-mix(in oklab, var(--cyan-glow) 8%, transparent);
+  border-color: var(--cyan-glow);
+}
+
+@utility input-modern {
+  width: 100%;
+  padding: 0.875rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: white;
+  color: var(--navy);
+  outline: none;
+  transition: all 0.2s ease;
+  font-family: var(--font-sans);
+}
+
+@utility input-modern:focus {
+  border-color: var(--indigo);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--indigo) 15%, transparent);
 }
 
 @keyframes orb-float {
