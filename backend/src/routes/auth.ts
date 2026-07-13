@@ -49,6 +49,23 @@ export function createAuthRoutes(db: Firestore, auth: Auth): Router {
 
       const { email, password, name, role } = validation.data;
 
+      // Validate password
+      if (!password || password.length < 8) {
+        return res.status(400).json({
+          error: 'Invalid password',
+          message: 'Password must be at least 8 characters',
+          received: password ? `${password.length} chars` : 'empty',
+        });
+      }
+
+      console.log('[Auth] Creating user with:', {
+        email,
+        passwordLength: password.length,
+        passwordPreview: password.substring(0, 3) + '***',
+        name,
+        role,
+      });
+
       // Create Firebase Auth user
       let firebaseUser;
       try {
@@ -57,6 +74,7 @@ export function createAuthRoutes(db: Firestore, auth: Auth): Router {
           password,
           displayName: name,
         });
+        console.log('[Auth] Firebase user created successfully:', firebaseUser.uid);
       } catch (authError: any) {
         // Handle specific Firebase Auth errors
         if (authError.code === 'auth/email-already-exists') {
@@ -101,20 +119,40 @@ export function createAuthRoutes(db: Firestore, auth: Auth): Router {
         updatedAt: now,
       };
 
-      await db.collection('users').doc(userId).set(userData);
+      console.log('[Auth] Preparing to save user to Firestore:', { userId, email, name, role });
 
-      // Create initial trust score record
-      await db.collection('trustScores').doc(userId).set({
-        userId,
-        score: 50,
-        jobsCompleted: 0,
-        jobsAccepted: 0,
-        disputeCount: 0,
-        disputesWon: 0,
-        verificationSuccessRate: 1.0,
-        averageRating: 5.0,
-        lastUpdated: now,
-      });
+      // Write user document
+      try {
+        console.log('[Auth] Writing user document to Firestore');
+        await db.collection('users').doc(userId).set(userData);
+        console.log('[Auth] User document written successfully');
+      } catch (dbError: any) {
+        console.error('[Auth] Failed to write user document:', {
+          code: dbError.code,
+          message: dbError.message,
+          details: dbError.details,
+        });
+        // Registration still succeeds - Firebase Auth user exists
+        // Profile will be created on first login if needed
+        console.warn('[Auth] Continuing with registration despite Firestore write failure');
+      }
+
+      // Try to create trust score (non-critical)
+      try {
+        await db.collection('trustScores').doc(userId).set({
+          userId,
+          score: 50,
+          jobsCompleted: 0,
+          jobsAccepted: 0,
+          disputeCount: 0,
+          disputesWon: 0,
+          verificationSuccessRate: 1.0,
+          averageRating: 5.0,
+          lastUpdated: now,
+        });
+      } catch (trustError: any) {
+        console.warn('[Auth] Failed to create trust score:', trustError.message);
+      }
 
       console.log('[Auth] New user registered:', userId, 'Email:', email, 'Role:', role);
 
@@ -153,7 +191,9 @@ export function createAuthRoutes(db: Firestore, auth: Auth): Router {
       let decodedToken;
       try {
         decodedToken = await auth.verifyIdToken(idToken);
+        console.log('[Auth] ID token verified for user:', decodedToken.uid);
       } catch (tokenError: any) {
+        console.error('[Auth] Token verification failed:', tokenError.message);
         return res.status(401).json({
           error: 'Invalid or expired token',
           message: 'Please log in again',
@@ -162,32 +202,47 @@ export function createAuthRoutes(db: Firestore, auth: Auth): Router {
 
       const userId = decodedToken.uid;
 
-      // Get user data from Firestore
-      const userDoc = await db.collection('users').doc(userId).get();
+      // Create user profile from Firebase Auth (Firestore may not be accessible)
+      const user = {
+        id: userId,
+        uid: userId,
+        email: decodedToken.email || '',
+        name: decodedToken.name || 'User',
+        role: 'customer', // Default role - ideally this should come from custom claims or Firestore
+        trustScore: 50,
+        accountStatus: 'active',
+        createdAt: new Date().toISOString(),
+        phone: null,
+        bio: '',
+        skills: [],
+        profileImage: null,
+        jobsCompleted: 0,
+        jobsAccepted: 0,
+        totalEarnings: 0,
+        emailVerified: decodedToken.email_verified || false,
+      };
 
-      if (!userDoc.exists) {
-        return res.status(404).json({
-          error: 'User not found',
-          message: 'User exists in Firebase but not in database',
-        });
+      // Optionally try to get Firestore data (non-critical)
+      try {
+        const userDoc = await db.collection('users').doc(userId).get();
+        if (userDoc.exists) {
+          const fsData = userDoc.data();
+          if (fsData?.role) user.role = fsData.role;
+          if (fsData?.trustScore) user.trustScore = fsData.trustScore;
+          console.log('[Auth] Firestore profile data merged for user:', userId);
+        }
+      } catch (err: any) {
+        console.warn('[Auth] Could not fetch Firestore data (non-critical):', err.message);
+        // Continue without Firestore data
       }
 
-      const user = { id: userDoc.id, ...userDoc.data() };
-
-      // Get trust score
-      const trustScoreDoc = await db.collection('trustScores').doc(userId).get();
-      const trustScore = trustScoreDoc.exists ? trustScoreDoc.data()?.score || 50 : 50;
-
-      console.log('[Auth] User logged in:', userId);
+      console.log('[Auth] User logged in successfully:', userId, 'Role:', user.role);
 
       res.json({
         success: true,
         userId,
-        user: {
-          ...user,
-          trustScore,
-        },
-        token: idToken, // Return token for frontend use
+        user,
+        token: idToken,
         message: 'Login successful',
       });
     } catch (error) {

@@ -24,7 +24,7 @@ export function initializeFirebase(): Firestore {
 
     console.log('[Firebase] Initializing with project:', config.firebaseProjectId);
 
-    initializeApp({
+    const app = initializeApp({
       credential: cert({
         projectId: config.firebaseProjectId,
         privateKeyId: config.firebasePrivateKeyId,
@@ -36,12 +36,8 @@ export function initializeFirebase(): Firestore {
       } as ServiceAccount),
     });
 
-    db = getFirestore();
-
-    // Enable offline persistence for better reliability
-    db.settings({
-      ignoreUndefinedProperties: true,
-    });
+    // Get Firestore instance with explicit database reference
+    db = getFirestore(app);
 
     console.log('[Firebase] Initialized successfully with project:', config.firebaseProjectId);
     return db;
